@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=500,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>ConnX-1000 Feedback Mainframe — Rate Your Ride</title>
+<style>
+:root{
+  --bg-page:#eef1f3;
+  --frame-bg-top:#021602;
+  --frame-bg-bot:#041903;
+  --crt-green:#9df09d;
+  --muted:#6f6f6f;
+  --paper:#f6efd9;
+  font-family: "Courier New", Courier, monospace;
+}
+html,body{height:100%;margin:0;background:var(--bg-page);display:flex;align-items:flex-start;justify-content:center;padding:28px 12px 40px;overflow:auto!important}
+*,*:before,*:after{box-sizing:border-box}
+::selection{ background:#113322; color:#c8ffd0; }
+
+/* FRAME */
+.frame{
+  width:500px;height:350px;border-radius:14px;
+  overflow:scroll; position:relative;padding:14px 20px 18px 14px;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(255,255,255,0.03), transparent 10%),
+    linear-gradient(180deg,var(--frame-bg-top) 0%, var(--frame-bg-bot) 100%);
+  box-shadow:0 18px 50px rgba(0,0,0,0.55), inset 0 0 40px rgba(0,255,80,0.02);
+  border:6px solid rgba(3,60,10,0.9); margin:8px auto;
+  z-index:1;
+}
+
+/* Badge (train) */
+.badge{
+  position:absolute;
+  top:8px;
+  left:0;
+  background:#ffd86b;
+  color:#111;
+  padding:6px 12px;
+  border-radius:8px;
+  font-weight:bold;
+  font-family:monospace;
+  box-shadow:0 6px 18px rgba(0,0,0,0.28);
+  z-index:220;
+  cursor:pointer;
+  user-select:none;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  transform-origin:center;
+  white-space:nowrap;
+  will-change: transform;
+}
+.badge::before, .badge::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 6px;
+  width:8px; height:8px;
+  border-radius:50%;
+  background: rgba(255,255,255,0.85);
+  opacity:0;
+  transform: translateX(-8px) translateY(0) scale(0.6);
+  filter: blur(1px);
+}
+.badge::after {
+  left: -22px; top: 10px; width:10px; height:10px;
+  background: rgba(255,255,255,0.75);
+  filter: blur(2px);
+}
+.badge.moving::before { animation: puff1 1.2s linear infinite alternate; }
+.badge.moving::after  { animation: puff2 1.4s linear infinite alternate; }
+@keyframes puff1 { 0%{opacity:0.9;transform:translateX(0) translateY(0) scale(0.6)}100%{opacity:0;transform:translateX(-36px) translateY(-14px) scale(1.6)} }
+@keyframes puff2 { 0%{opacity:0.85;transform:translateX(0) translateY(0) scale(0.5)}100%{opacity:0;transform:translateX(-48px) translateY(-20px) scale(1.8)} }
+.badge .tail{ color:#ffcc66; font-weight:900; letter-spacing:-2px; opacity:0.9; }
+
+/* layout & other UI */
+header{display:flex;align-items:center;gap:12px;position:relative}
+.logo{width:58px;height:58px;border-radius:8px;background:linear-gradient(135deg,#2b2 0%, #0b8 100%);display:flex;align-items:center;justify-content:center;font-weight:bold;color:#042}
+.title{font-size:14px;color:var(--crt-green);margin-right:56px}
+.subtitle{font-size:10px;color:var(--muted);font-family:monospace}
+
+main{display:flex;gap:8px;margin-top:8px;min-width:620px;padding-bottom:14px}
+.console{width:250px;background:linear-gradient(180deg,#021202,#041804);border-radius:8px;padding:10px;height:320px;overflow:auto;flex-shrink:0;box-shadow:inset 0 0 10px rgba(0,0,0,0.8)}
+.crt{background:linear-gradient(180deg,#031403,#071807);border-radius:6px;padding:8px;height:140px;box-shadow: inset 0 0 20px rgba(0,255,100,0.03)}
+.crt .lines{font-size:12px;line-height:1.1;color:var(--crt-green);height:100%;overflow:auto;white-space:pre-wrap;padding-right:6px}
+
+.controls{margin-top:8px;display:flex;flex-direction:column;gap:8px}
+.row{display:flex;gap:8px;align-items:center}
+.punch{background:var(--paper);padding:8px;border-radius:6px;font-size:12px;color:#111;box-shadow:0 2px 0 rgba(0,0,0,0.2);min-height:40px}
+
+.switches{display:flex;gap:10px;align-items:center}
+.switch{width:46px;height:26px;border-radius:13px;background:#222;border:2px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:4px;cursor:pointer;user-select:none}
+.thumb{width:18px;height:18px;border-radius:50%;background:#ddd;transition:transform .12s ease}
+.switch.on{background:linear-gradient(90deg,#ffd86b,#ffb347)}
+.switch.on .thumb{transform:translateX(18px);background:#2a2a2a}
+
+.lever{width:102px;height:30px;border-radius:6px;background:#222;color:var(--crt-green);display:flex;align-items:center;justify-content:center;font-size:12px;cursor:grab;user-select:none;border:2px solid rgba(0,0,0,0.6)}
+.lever.clickable{cursor:pointer}
+.lever:focus{outline:2px dashed rgba(157,240,157,0.12)}
+
+.workflow{flex:1;background:linear-gradient(180deg,#08120a,#03100b);border-radius:8px;padding:12px 18px 12px 12px;height:320px;display:flex;flex-direction:column;gap:10px;align-items:stretch;min-width:360px;overflow:auto}
+.step{background:linear-gradient(180deg,#081f0b,#052006);border-radius:6px;padding:10px;color:var(--crt-green);height:80px;display:flex;gap:8px;align-items:flex-start;border:1px dashed rgba(255,255,255,0.03)}
+.step .label{font-size:13px;width:160px}
+.paper-tape{height:42px;background:linear-gradient(90deg,#fffaf0,#efe0b0);border-radius:4px;padding:6px;display:flex;align-items:center;gap:6px;overflow:hidden}
+.segment{background:#fff;padding:6px;border-radius:4px;font-size:12px;color:#222;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+
+.paper-tape.scroll-x{height:42px;background:linear-gradient(90deg,#fffaf0,#efe0b0);border-radius:4px;padding:6px;overflow-x:auto;overflow-y:hidden;display:block;white-space:nowrap;-webkit-overflow-scrolling:touch}
+.paper-tape.scroll-x .inline-el{display:inline-block;vertical-align:middle;margin-right:12px}
+.paper-tape.scroll-x select, .paper-tape.scroll-x input{font-family:monospace;font-size:12px}
+
+.tiny-note{font-size:12px;color:#c8ffd0;text-shadow:0 0 3px #003300;opacity:0.98;padding-top:4px;display:block}
+@keyframes tinyBlink{0%{opacity:1;transform:translateY(0)}20%{opacity:0.12;transform:translateY(-1px)}50%{opacity:1;transform:translateY(0)}80%{opacity:0.12;transform:translateY(-1px)}100%{opacity:1;transform:translateY(0)}}
+.tiny-note.blink{animation:tinyBlink 1.6s ease-in-out 0s 1 both}
+
+.scroll-footer{margin-top:14px;padding:10px;background:linear-gradient(90deg, rgba(0,10,0,0.45), rgba(0,10,0,0.35));color:var(--muted);border-radius:6px;border:1px solid rgba(0,0,0,0.35);font-size:12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+
+/* Trigger modal & punch modal */
+.trigger-modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#0b2a12;color:#eaffea;padding:14px;border-radius:8px;border:2px solid rgba(255,255,255,0.06);z-index:800;box-shadow:0 18px 60px rgba(0,0,0,0.6);display:none;min-width:320px}
+.trigger-modal h3{margin:0 0 8px 0;font-family:monospace}
+.trigger-modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+.btn{background:#e8f8e8;border:1px solid rgba(0,0,0,0.06);padding:8px 10px;border-radius:6px;cursor:pointer;font-family:monospace}
+.btn.primary{background:#ffd86b;font-weight:700}
+
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff9e6;color:#222;padding:12px;border-radius:6px;box-shadow:0 6px 30px rgba(0,0,0,0.5);display:none;z-index:300;width:460px;max-width:90%}
+.modal h3{margin:0 0 8px 0;font-size:15px}
+.modal .typewriter{height:110px;background:#fff;padding:8px;border-radius:6px;overflow:auto;border:2px solid #ddd;font-family:monospace;font-size:13px;color:#111;box-shadow:0 6px 14px rgba(0,0,0,0.12)}
+
+/* warmup overlay - highest z so it shows reliably */
+#warmup-overlay{
+  position:fixed;left:0;top:0;right:0;bottom:0;
+  background:linear-gradient(rgba(0,10,0,0.86), rgba(0,10,0,0.78));
+  display:flex;align-items:center;justify-content:center;z-index:1500;padding:18px;box-sizing:border-box;
+}
+#warmup-overlay .panel{width:480px;text-align:center;color:#eaffea}
+#warmup-overlay .warm-title{font-family:monospace;font-weight:700;letter-spacing:1px;font-size:14px;margin-bottom:8px;text-shadow:0 2px 8px rgba(0,0,0,0.8)}
+#warmup-overlay .warm-msg{font-size:13px;color:#c6ffd0;margin-top:8px}
+#warmbar{height:14px;border-radius:6px;background:linear-gradient(90deg,#003300,#66ff66);width:0%;box-shadow:0 4px 8px rgba(0,0,0,0.5);transition:width 0.18s linear}
+
+/* a small screen fallback */
+@media(max-width:540px){ .frame{width:100%;height:350px} main{flex-direction:column;min-width:320px;padding-bottom:14px} .console{width:auto;height:220px} .workflow{min-width:auto;height:220px} }
+</style>
+</head>
+<body>
+<div class="frame" role="application" aria-label="ConnX-1000 Feedback Mainframe — Rate Your Ride">
+
+  <!-- Badge text uses non-breaking space so it can never wrap -->
+  <div id="vote-badge" class="badge" role="button" tabindex="0" aria-label="Vote now badge">VOTE&nbsp;NOW! <span class="tail">━━━━</span></div>
+
+  <header>
+    <div class="logo">C·1000</div>
+    <div>
+      <div class="title">ConnX-1000 Feedback Mainframe — <strong>RATE YOUR RIDE</strong></div>
+      <div class="subtitle">Dawn of Feedback Processing — Proudly overly complicated</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="console" aria-hidden="false">
+      <div class="crt" id="crt"><div class="lines" id="crt-lines" aria-live="polite">CONNX-1000 SYSTEM LOADING...</div></div>
+
+      <div class="controls">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;">
+          <div class="punch" id="punch-status">PUNCH: ☐ ☐ ☐</div>
+          <div style="text-align:right;color:var(--muted);font-size:11px">SysID: C1000-1956</div>
+        </div>
+
+        <div class="row" style="align-items:center;justify-content:space-between;margin-top:8px">
+          <div style="font-size:12px;color:var(--muted)">Binary Input (3 switches represent rating)</div>
+          <div id="binary-display" style="font-family:monospace;color:var(--crt-green)">[ - - - ]</div>
+        </div>
+
+        <div class="row" style="justify-content:center;margin-top:10px">
+          <div class="switches" id="switches" role="group" aria-label="Binary switches">
+            <div class="switch" data-bit="2" title="4 (MSB)" tabindex="0"><div class="thumb"></div></div>
+            <div class="switch" data-bit="1" title="2" tabindex="0"><div class="thumb"></div></div>
+            <div class="switch" data-bit="0" title="1 (LSB)" tabindex="0"><div class="thumb"></div></div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:12px;gap:6px;align-items:center;">
+          <div style="flex:1">
+            <div style="font-size:12px;color:var(--muted)">Feedback Pipeline:
+              <select id="route" style="font-family:monospace;font-size:12px">
+                <option value="Inference Stream — v2.3">Inference Stream — v2.3</option>
+                <option value="Data Uplink Shuttle">Data Uplink Shuttle</option>
+                <option value="Telemetry Sync Tram">Telemetry Sync Tram</option>
+                <option value="Edge-Node Courier Route">Edge-Node Courier Route</option>
+                <option value="Batch Processor Loop">Batch Processor Loop</option>
+              </select>
+            </div>
+          </div>
+          <div style="width:110px;text-align:center">
+            <div id="lever" class="lever clickable" draggable="true" role="button" aria-pressed="true" tabindex="0">LEVER: LOCK</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workflow" aria-hidden="false">
+      <div class="step" id="step1">
+        <div class="label">STEP 1 — IDENTIFY</div>
+        <div class="paper-tape scroll-x" id="step1-scroll" aria-label="Pipeline and node slot (scroll horizontally)">
+          <div class="inline-el" id="seg-route">
+            <label style="font-size:12px;color:#333">Pipeline:&nbsp;</label>
+            <select id="route-select" style="font-family:monospace;font-size:12px">
+              <option>Inference Stream — v2.3</option>
+              <option>Data Uplink Shuttle</option>
+              <option>Telemetry Sync Tram</option>
+              <option>Edge-Node Courier Route</option>
+              <option>Batch Processor Loop</option>
+            </select>
+          </div>
+
+          <div class="inline-el" id="seg-seat">
+            <label style="font-size:12px;color:#333">Node Slot:&nbsp;</label>
+            <input id="seat" value="3" style="width:60px;font-family:monospace">
+          </div>
+
+          <div class="inline-el" id="seg-operator">
+            <label style="font-size:12px;color:#333">Cluster Origin:&nbsp;</label>
+            <span style="font-family:monospace">RACK-C → BAY-7</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step2">
+        <div class="label">STEP 2 — PREPARE BINARY</div>
+        <div style="font-size:12px;color:var(--muted)">To express "5" (Good Ride), set switches to <strong>101</strong>. Resist pressing Submit until the furnace is satisfied.</div>
+      </div>
+
+      <div class="step" id="step3">
+        <div class="label">STEP 3 — PUNCH & SUBMIT</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button id="punch-btn" title="Punch card">PUNCH CARD</button>
+          <button id="submit" title="Submit rating" class="attract">SUBMIT RATING</button>
+        </div>
+      </div>
+
+      <div id="tiny-note" class="tiny-note">Designed to be infuriatingly delightful. If the mainframe disagrees, it shall let you know.</div>
+
+      <div class="scroll-footer" id="scroll-footer">
+        <div>ConnX-1000 — Because a one-byte opinion deserves a full pipeline audit.</div>
+        <div class="label">Status: <span id="status">Warming</span></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Trigger modal -->
+  <div id="trigger-modal" class="trigger-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <h3>Operator Override — Engage Voter Sequence</h3>
+    <div style="font-size:13px;color:#dfffdc">
+      The ConnX-1000 train has arrived. Engage automatic voter prep or close for manual operation.
+    </div>
+    <div class="actions">
+      <button id="trigger-close" class="btn">CLOSE</button>
+      <button id="trigger-auto" class="btn primary">AUTO-PREPARE &amp; FOCUS PUNCH</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true">
+    <h3 id="modal-title">SYSTEM NOTICE</h3>
+    <div id="modal-body" class="typewriter"><div class="line" id="type-text">Stand by…</div></div>
+    <div class="buttons"><button id="modal-ok">ACK</button></div>
+  </div>
+
+</div>
+
+<!-- WARMUP overlay placed at body-end so it sits above everything reliably -->
+<div id="warmup-overlay" aria-hidden="false" role="status" aria-live="polite">
+  <div class="panel" aria-live="polite">
+    <div class="warm-title">WARMING VACUUM TUBES — INITIALIZING FEEDBACK FURNACE</div>
+    <div style="background:#001200;border-radius:6px;padding:8px;border:1px solid rgba(255,255,255,0.03);">
+      <div id="warmbar" style="width:0%"></div>
+    </div>
+    <div id="warmmsg" class="warm-msg" aria-atomic="true">VACUUM TUBES: 0%</div>
+    <div style="font-size:12px;color:#9fdca0;margin-top:8px">Please allow the mainframe to achieve mild thermionic competence.</div>
+  </div>
+</div>
+
+<script>
+/* Robust warmup + rest of widget (keeps all previously-required behaviors).
+   Fixes: warmup uses requestAnimationFrame loop, overlay has high z-index and is appended to body so
+   it cannot be hidden behind the frame or other elements. Warmup progress updates reliably.
+*/
+
+/* DOM refs */
+const frame = document.querySelector('.frame');
+const crtLines = document.getElementById('crt-lines');
+const warmOverlay = document.getElementById('warmup-overlay');
+const warmBar = document.getElementById('warmbar');
+const warmmsg = document.getElementById('warmmsg');
+
+const switchesEl = document.getElementById('switches');
+const switches = Array.from(switchesEl.querySelectorAll('.switch'));
+const binaryDisplay = document.getElementById('binary-display');
+const punchBtn = document.getElementById('punch-btn');
+const submitBtn = document.getElementById('submit');
+const statusEl = document.getElementById('status');
+const lever = document.getElementById('lever');
+const modal = document.getElementById('modal');
+const modalBody = document.getElementById('modal-body');
+const modalTitle = document.getElementById('modal-title');
+const modalOk = document.getElementById('modal-ok');
+const punchStatus = document.getElementById('punch-status');
+const routeSelect = document.getElementById('route-select');
+const seatInput = document.getElementById('seat');
+const step1Scroll = document.getElementById('step1-scroll');
+const tinyNote = document.getElementById('tiny-note');
+const voteBadge = document.getElementById('vote-badge');
+const triggerModal = document.getElementById('trigger-modal');
+const triggerAuto = document.getElementById('trigger-auto');
+const triggerClose = document.getElementById('trigger-close');
+const punchButton = document.getElementById('punch-btn');
+const step3 = document.getElementById('step3');
+
+let warmLocked = true;
+let warmProgress = 0;
+let warmRaf = null;
+let warmStartTs = null;
+let warmState = 'idle'; // 'idle' | 'warming' | 'ready'
+let punched = false;
+let leverLocked = true;
+let votes = [];
+let badgeController = { cancel: ()=>{} };
+
+/* helper - pretty CRT log */
+function crtWrite(msg){
+  const now = new Date().toLocaleTimeString();
+  crtLines.textContent = `${now} → ${msg}\n` + crtLines.textContent.split('\n').slice(0,7).join('\n');
+}
+
+/* warmup loop using requestAnimationFrame for reliability */
+function startWarmup(initial=false){
+  // prevent double-start
+  if(warmState === 'warming') return;
+  warmState = 'warming';
+  warmLocked = true;
+  warmProgress = initial ? 6 : 0;
+  warmBar.style.width = warmProgress + '%';
+  warmmsg.textContent = `VACUUM TUBES: ${Math.floor(warmProgress)}%`;
+  warmOverlay.style.display = 'flex';
+  warmOverlay.setAttribute('aria-hidden','false');
+  warmStartTs = performance.now();
+
+  // safety: ensure overlay is topmost
+  warmOverlay.style.zIndex = 1500;
+
+  // cancel old RAF loop if any
+  if(warmRaf) cancelAnimationFrame(warmRaf);
+
+  // target duration (approx) - but keep some randomness to simulate tubes
+  const approxDuration = 4200 + (initial ? 1200 : 0); // ms
+
+  // internal jittered progress function
+  function step(now){
+    if(!warmStartTs) warmStartTs = now;
+    const elapsed = now - warmStartTs;
+
+    // base progress linear + a bit of random ease + small flickers
+    const base = Math.min(99.2, (elapsed / approxDuration) * 100);
+    const jitter = Math.sin(elapsed / 120) * 1.2 * Math.random();
+    let next = Math.max(0, Math.min(100, base + jitter + (Math.random()<0.01 ? -2.5 : 0)));
+    // ensure monotonic-ish increase
+    if(next < warmProgress) next = warmProgress + (Math.random()*0.3);
+    warmProgress = Math.min(100, next);
+
+    // update UI
+    warmBar.style.width = warmProgress.toFixed(1) + '%';
+    warmmsg.textContent = `VACUUM TUBES: ${Math.floor(warmProgress)}%`;
+
+    // announce small CRT line occasionally
+    if(Math.random() < 0.015) crtWrite('Thermionic filaments aligning…');
+
+    if(warmProgress < 100){
+      warmRaf = requestAnimationFrame(step);
+      return;
+    }
+
+    // completed
+    warmProgress = 100;
+    warmBar.style.width = '100%';
+    warmmsg.textContent = 'VACUUM TUBES: 100% — THERMIONIC HUM ACHIEVED';
+
+    // show a tiny completion pulse and then hide overlay
+    setTimeout(()=>{
+      warmOverlay.style.display = 'none';
+      warmOverlay.setAttribute('aria-hidden','true');
+      warmLocked = false;
+      warmState = 'ready';
+      crtWrite('Compute furnace stabilized. ConnX-1000 ready.');
+      updateStatus('Ready');
+      // tiny blink to celebrate and start badge animation
+      tinyNote.classList.add('blink');
+      setTimeout(()=> tinyNote.classList.remove('blink'), 1400);
+      startBadgeExitLoop(); // start train animation
+    }, 520);
+  }
+
+  // start RAF
+  warmRaf = requestAnimationFrame(step);
+}
+
+/* stop warmup (call when CORE DUMP triggers) */
+function stopWarmup(){
+  if(warmRaf) cancelAnimationFrame(warmRaf);
+  warmRaf = null;
+  warmStartTs = null;
+  warmLocked = true;
+  warmProgress = 0;
+  warmBar.style.width = '0%';
+  warmmsg.textContent = 'VACUUM TUBES: 0%';
+  warmOverlay.style.display = 'flex';
+  warmOverlay.setAttribute('aria-hidden','false');
+  warmState = 'idle';
+}
+
+/* status update */
+function updateStatus(s){ document.getElementById('status').textContent = s; }
+
+/* start warmup on load (initial quick warmup) */
+startWarmup(true);
+
+/* Badge (train) code: exit fully to right, pause, return; uses Web Animations API with RAF loop earlier */
+function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
+function startBadgeExitLoop(){
+  try{ if(badgeController.cancel) badgeController.cancel(); } catch(e){}
+  const oneWayDuration = 3600;
+  const offscreenPause = 420;
+  const margin = 12;
+
+  (async function loop(){
+    while(true){
+      await wait(12);
+      const frameInnerWidth = frame.clientWidth;
+      const badgeWidth = voteBadge.offsetWidth;
+      const startX = - (badgeWidth + margin);
+      const endX = frameInnerWidth + badgeWidth + margin;
+
+      voteBadge.style.transition = 'none';
+      voteBadge.style.transform = `translateX(${startX}px)`;
+      void voteBadge.offsetWidth;
+
+      // forward
+      voteBadge.classList.add('moving');
+      try {
+        const anim = voteBadge.animate([
+          { transform: `translateX(${startX}px)` },
+          { transform: `translateX(${endX}px)` }
+        ], { duration: oneWayDuration, easing: 'linear', fill: 'forwards' });
+        badgeController.cancel = ()=> anim.cancel();
+        await anim.finished;
+      } catch(e) { break; }
+
+      voteBadge.classList.remove('moving');
+      await wait(offscreenPause);
+
+      // back
+      voteBadge.classList.add('moving');
+      try {
+        const animBack = voteBadge.animate([
+          { transform: `translateX(${endX}px)` },
+          { transform: `translateX(${startX}px)` }
+        ], { duration: oneWayDuration, easing: 'linear', fill: 'forwards' });
+        badgeController.cancel = ()=> animBack.cancel();
+        await animBack.finished;
+      } catch(e) { break; }
+
+      voteBadge.classList.remove('moving');
+      await wait(offscreenPause);
+    }
+    // fallback
+    startBadgeExitFallback(oneWayDuration, offscreenPause, margin);
+  })();
+}
+function startBadgeExitFallback(oneWayDuration, offscreenPause, margin){
+  try{
+    voteBadge.classList.add('moving');
+    let forward = true;
+    function step(){
+      const badgeWidth = voteBadge.offsetWidth;
+      const fw = frame.clientWidth;
+      const startX = - (badgeWidth + margin);
+      const endX = fw + badgeWidth + margin;
+      const target = forward ? endX : startX;
+      voteBadge.style.transition = `transform ${oneWayDuration}ms linear`;
+      voteBadge.style.transform = `translateX(${target}px)`;
+      forward = !forward;
+      setTimeout(()=>{ voteBadge.classList.toggle('moving', forward===false); setTimeout(step, offscreenPause); }, oneWayDuration + 16);
+    }
+    setTimeout(step, 24);
+    badgeController.cancel = ()=>{ voteBadge.style.transition='none'; };
+  }catch(e){}
+}
+
+/* binary helpers */
+function readBinaryBits(){ return switches.map(s=> s.classList.contains('on') ? 1 : 0 ); }
+function binaryValue(bits){ return bits[0]*4 + bits[1]*2 + bits[2]*1; }
+function updateBinaryDisplay(){ const bits = readBinaryBits(); binaryDisplay.textContent = `[ ${bits.join(' ')} ]`; return bits; }
+function flashWarning(msg){ modalTitle.textContent='SYSTEM NOTICE'; modalBody.querySelector('.line').textContent = msg; modal.style.display='block'; setTimeout(()=>{ modal.style.display='none'; }, 1200); crtWrite(msg); }
+
+/* switches - prevent >5 */
+switches.forEach(s=>{
+  s.addEventListener('click', ()=>{
+    if(warmLocked){ flashWarning('Warmup in progress — try later'); return; }
+    s.classList.toggle('on');
+    let bits = updateBinaryDisplay();
+    let val = binaryValue(bits);
+    if(val > 5){
+      setTimeout(()=>{ s.classList.toggle('on'); updateBinaryDisplay(); flashWarning('Value > 5 not permitted — maximum encoded rating is 5.'); }, 140);
+      crtWrite(`Attempted invalid rating ${val}. Reverting toggle.`);
+      return;
+    }
+    crtWrite(`Switch ${s.dataset.bit} => ${s.classList.contains('on')?1:0}`);
+    if(Math.random() < 0.06) accidentalFlicker();
+  });
+  s.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' ') { e.preventDefault(); s.click(); }});
+});
+
+/* lever */
+lever.addEventListener('dragstart', ()=>{ lever.textContent='LEVER: MOVING'; });
+lever.addEventListener('dragend', ()=>{ leverLocked = !leverLocked; lever.textContent = leverLocked ? 'LEVER: LOCK' : 'LEVER: RELEASED'; updateStatus(leverLocked?'Locked':'Released'); crtWrite(`Operator lever ${leverLocked ? 'locked' : 'released'}`); });
+lever.addEventListener('click', ()=>{ leverLocked = !leverLocked; lever.textContent = leverLocked ? 'LEVER: LOCK' : 'LEVER: RELEASED'; updateStatus(leverLocked?'Locked':'Released'); crtWrite(`Operator lever ${leverLocked ? 'locked' : 'released'} (clicked)`); });
+lever.addEventListener('keydown',(e)=>{ if(e.key==='Enter') lever.click(); });
+
+/* punch card */
+punchBtn.addEventListener('click', async ()=>{
+  if(warmLocked){ flashWarning('Mainframe is not warm yet. The tubes demand respect.'); return; }
+  if(punched){ flashWarning('Punch card already stamped. Proceed to submit.'); return; }
+  modalTitle.textContent='PUNCH CARD: ENGRAVING';
+  modalBody.querySelector('.line').textContent='';
+  modal.style.display='block';
+  modalOk.focus();
+  const lines = ['— STAMPING PUNCH CARD —','Operator seal: CONNX-1000','Routing pipeline metadata...','Scribing…','Complete. Insert card into slot.'];
+  for(let t of lines){
+    await typeLine(t);
+    await wait(420 + Math.random()*240);
+  }
+  modalBody.querySelector('.line').textContent='PUNCH: [■■■]';
+  punched=true;
+  document.getElementById('punch-status').textContent = 'PUNCH: ● ● ●';
+  crtWrite('Punch card completed.');
+  updateStatus('Card punched');
+  setTimeout(()=>{ if(modal.style.display==='block') modal.style.display='none'; }, 700);
+});
+modalOk.addEventListener('click', ()=>{ modal.style.display='none'; });
+
+/* submit */
+submitBtn.addEventListener('click', ()=>{
+  if(warmLocked){ flashWarning('Too soon. Tubes idle.'); return; }
+  if(!punched){ flashWarning('Please PUNCH CARD before submitting. The machine is old-fashioned.'); return; }
+  if(leverLocked){ flashWarning('Operator lever is locked. Click or drag to RELEASE before submission.'); return; }
+
+  const bits = updateBinaryDisplay();
+  const val = binaryValue(bits);
+  crtWrite(`Binary submitted: ${bits.join('')} → ${val}`);
+
+  if(val !== 5){
+    showCoreDump(val);
+    return;
+  }
+
+  const vote = { route: (document.getElementById('route')?.value||''), slot: seatInput.value, rating: val, time: new Date().toISOString() };
+  votes.push(vote);
+  crtWrite(`Feedback processed: rating ${val}. Thank you.`);
+  showModal(`THANK YOU — FEEDBACK PROCESSED\nRating: ${val}\nOperator Token: C1000-${Math.floor(Math.random()*900+100)}`, 'ACKNOWLEDGED');
+  setTimeout(()=>{ try{ frame.scrollTop = frame.scrollHeight; }catch(e){} },700);
+  setTimeout(()=> partialReset(), 1000 + Math.random()*800);
+});
+
+/* helpers */
+async function typeLine(txt){
+  const el = modalBody.querySelector('.line');
+  el.textContent='';
+  for(let ch of txt.split('')){
+    el.textContent += ch;
+    try{ beep(700 + Math.random()*400, 0.02); }catch(e){}
+    await wait(28 + Math.random()*36);
+  }
+}
+function showModal(txt,title='OPERATOR MESSAGE'){ modalTitle.textContent = title; modalBody.querySelector('.line').textContent = txt; modal.style.display='block'; modalOk.focus(); }
+function showCoreDump(value){
+  crtWrite(`CORE DUMP: submitted ${value} != expected 5`);
+  // visually mark coredump and restart warmup robustly
+  frame.classList.add('coredump');
+  showModal('*** CORE DUMP ***\nSyntax error in feedback encoding.\nSystem will reset vacuum tubes to recover.','CORE DUMP');
+  beep(160,0.4);
+  setTimeout(()=>{ frame.classList.remove('coredump'); modal.style.display='none'; crtWrite('CORE DUMP recovery initiated. Warming tubes...'); stopWarmup(); startWarmup(false); punched=false; document.getElementById('punch-status').textContent='PUNCH: ☐ ☐ ☐'; }, 1400);
+}
+function accidentalFlicker(){ crtWrite('Electrostatic hiss… performing micro-flux realignment.'); beep(330,0.04); }
+function partialReset(){
+  switches.forEach(s=>s.classList.remove('on'));
+  updateBinaryDisplay();
+  punched=false;
+  document.getElementById('punch-status').textContent='PUNCH: ☐ ☐ ☐';
+  leverLocked=true; lever.textContent='LEVER: LOCK';
+  updateStatus('Idle'); crtWrite('ConnX-1000: Partial reset to preserve noble mystery.');
+}
+function showTemporaryMessage(msg){ flashWarning(msg); }
+function beep(freq,time){ try{ const ctx = new (window.AudioContext||window.webkitAudioContext)(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.type='square'; o.frequency.value=freq; g.gain.value=0.02; o.connect(g); g.connect(ctx.destination); o.start(); setTimeout(()=>{ o.stop(); ctx.close(); }, Math.max(10, time*1000)); }catch(e){} }
+
+/* STEP1 auto-scroll when focusing controls */
+function scrollStep1Center(el){
+  try{
+    const cont = step1Scroll;
+    const elRect = el.getBoundingClientRect();
+    const contRect = cont.getBoundingClientRect();
+    const offset = (elRect.left - contRect.left) - (contRect.width/2) + (elRect.width/2);
+    cont.scrollBy({ left: offset, behavior: 'smooth' });
+  }catch(e){}
+}
+const routeSel = document.getElementById('route-select');
+routeSel.addEventListener('focus', ()=> scrollStep1Center(routeSel));
+seatInput.addEventListener('focus', ()=> scrollStep1Center(seatInput));
+document.getElementById('seg-route').addEventListener('click', ()=> scrollStep1Center(routeSel));
+document.getElementById('seg-seat').addEventListener('click', ()=> scrollStep1Center(seatInput));
+
+/* --- Trigger modal behavior (badge click opens a popup to 'trigger the voter') --- */
+voteBadge.addEventListener('click', (e)=>{
+  triggerModal.style.display = 'block';
+  triggerModal.setAttribute('aria-hidden','false');
+  triggerClose.focus();
+});
+voteBadge.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); voteBadge.click(); }});
+
+triggerClose.addEventListener('click', ()=>{
+  triggerModal.style.display = 'none';
+  triggerModal.setAttribute('aria-hidden','true');
+  voteBadge.focus();
+});
+
+triggerAuto.addEventListener('click', ()=>{
+  // set switches to 101 (bits for data-bit 2,1,0)
+  switches.forEach((s)=>{
+    const bitIndex = Number(s.dataset.bit);
+    if(bitIndex === 2) s.classList.add('on');
+    if(bitIndex === 1) s.classList.remove('on');
+    if(bitIndex === 0) s.classList.add('on');
+  });
+  updateBinaryDisplay();
+  leverLocked = false;
+  lever.textContent = 'LEVER: RELEASED';
+  updateStatus('Ready');
+  punched = false;
+  document.getElementById('punch-status').textContent = 'PUNCH: ☐ ☐ ☐';
+  crtWrite('Operator override: auto-prepared binary=101, lever=RELEASED');
+  triggerModal.style.display = 'none';
+  triggerModal.setAttribute('aria-hidden','true');
+  setTimeout(()=>{ punchButton.focus(); }, 220);
+});
+
+/* init displays */
+function updateBinaryDisplay(){ const bits = readBinaryBits(); binaryDisplay.textContent = `[ ${bits.join(' ')} ]`; return bits; }
+updateBinaryDisplay();
+crtWrite('ConnX-1000 idle. Awaiting warmup.');
+updateStatus('Warming');
+
+window._connx_votes = votes;
+
+</script>
+</body>
+</html>
